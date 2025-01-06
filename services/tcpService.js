@@ -1,6 +1,5 @@
 const net = require("net");
 const { exec } = require("child_process");
-const logger = require("winston");
 
 class TcpService {
   constructor() {
@@ -10,41 +9,45 @@ class TcpService {
   start() {
     this.server = net.createServer((socket) => {
       const remoteAddress = `${socket.remoteAddress}:${socket.remotePort}`;
-      logger.info(`有客户端连接到服务器: ${remoteAddress}`);
+      console.log(styledPrint("green", `有客户端连接到服务器: ${remoteAddress}`));
 
       socket.on("data", async (data) => {
         try {
           const command = data.toString().trim();
-          logger.info(`收到客户端发送的调试命令: ${command} from ${remoteAddress}`);
+          console.log(
+            styledPrint("green", `收到客户端发送的调试命令: ${command} from ${remoteAddress}`)
+          );
 
           let response;
           response = await this.execCommand(command);
 
           socket.write(JSON.stringify(response));
         } catch (err) {
-          logger.error(`处理命令时出错: ${err.message}`);
+          console.error(styledPrint("red", `处理命令时出错: ${err.message}`));
           socket.write(JSON.stringify({ error: err.message }));
         }
       });
 
       socket.on("end", () => {
-        logger.info(`客户端连接已关闭: ${remoteAddress}`);
+        console.log(styledPrint("green", `客户端连接已关闭: ${remoteAddress}`));
       });
 
       socket.on("error", (err) => {
-        logger.error(`与客户端连接出现错误: ${err.message}`);
+        console.error(styledPrint("red", `与客户端连接出现错误: ${err.message}`));
       });
     });
 
     this.server.listen(process.env.SERVER_PORT, "0.0.0.0", () => {
-      logger.info(`TCP服务器运行在 ${process.env.SERVER_IP}:${process.env.SERVER_PORT}`);
+      console.log(
+        styledPrint("green", `TCP服务器运行在 ${process.env.SERVER_IP}:${process.env.SERVER_PORT}`)
+      );
     });
   }
 
   stop() {
     if (this.server) {
       this.server.close(() => {
-        logger.info("TCP服务器已停止");
+        console.log(styledPrint("green", "TCP服务器已停止"));
       });
     }
   }
@@ -54,10 +57,10 @@ class TcpService {
     return new Promise((resolve, reject) => {
       exec(command, { timeout: 30000 }, (error, stdout, stderr) => {
         if (error) {
-          logger.error(`执行失败: ${error.message}`);
+          console.error(styledPrint("red", `执行失败: ${error.message}`));
           return reject({ error: error.message, stderr });
         }
-        logger.info(`执行成功: ${stdout}`);
+        console.log(styledPrint("green", `执行成功: ${stdout}`));
         resolve({ stdout, stderr });
       });
     });
