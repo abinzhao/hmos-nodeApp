@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>模拟终端</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <link rel="stylesheet" href="./index.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <h1>命令执行接口</h1>
+      <p>这是一个用于执行各种命令的API，按下回车键即可执行命令。</p>
+      <div class="input-container">
+        <input type="text" id="commandInput" placeholder="请输入要执行的命令" autofocus />
+        <button id="executeButton"><i class="fa-solid fa-play"></i>执行</button>
+      </div>
+      <div id="result"></div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const executeButton = document.getElementById("executeButton");
+        const commandInput = document.getElementById("commandInput");
+        const resultDiv = document.getElementById("result");
+
+        // 监听回车键按下事件，等同于点击执行按钮
+        commandInput.addEventListener("keydown", function (event) {
+          if (event.key === "Enter") {
+            executeButton.click();
+          }
+        });
+
+        executeButton.addEventListener("click", function () {
+          const command = commandInput.value;
+          if (command.trim() === "") {
+            resultDiv.innerHTML += `<div class="command-line"><span class="prompt">user@localhost:~$ </span><span class="stderr">请输入有效的命令</span></div>`;
+            return;
+          }
+
+          if (command === "clear") {
+            resultDiv.innerHTML = `<div class="command-line"><span class="prompt">user@localhost:~$ </span></div>`;
+            return;
+          }
+
+          // 使用fetch发送POST请求，这里假设后端接口能正确处理并返回结果
+          fetch("/api/execute-command", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ command: command }),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("网络请求失败");
+              }
+              return response.json();
+            })
+            .then((data) => {
+              let resultHtml = "";
+              const prompt =
+                '<div class="command-line"><span class="prompt">user@localhost:~$ </span>';
+              if (data.stdout && data.stdout.trim() !== "") {
+                resultHtml += `${prompt}<span class="stdout">${data.stdout.trim()}</span></div>`;
+              }
+              if (data.stderr && data.stderr.trim() !== "") {
+                resultHtml += `${prompt}<span class="stderr">${data.stderr.trim()}</span></div>`;
+              }
+              if (resultHtml === "") {
+                resultHtml = `${prompt}命令执行成功，无输出信息</div>`;
+              }
+              resultDiv.innerHTML += resultHtml;
+              // 清空输入框，准备下一次输入
+              commandInput.value = "";
+            })
+            .catch((error) => {
+              resultDiv.innerHTML += `<div class="command-line"><span class="prompt">user@localhost:~$ </span><span class="stderr">执行命令出错: ${error.message}</span></div>`;
+            });
+
+          // 检查是否输入clear命令，若输入则清空结果展示区
+          if (command === "clear") {
+            resultDiv.innerHTML = `<div class="command-line"><span class="prompt">user@localhost:~$ </span></div>`;
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

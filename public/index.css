@@ -1,0 +1,101 @@
+/* 整体页面背景色，模拟终端的深色背景 */
+body {
+  background-color: #000;
+  color: #fff;
+  font-family: "Courier New", monospace;
+  margin: 0;
+  padding: 0;
+}
+
+/* 容器样式，设置宽度、居中以及内边距等 */
+.container {
+  width: 80%;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* 标题样式，模拟终端的大字号文本效果 */
+h1 {
+  color: #00ff00;
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+/* 段落文字样式，稍作字号和颜色调整 */
+p {
+  color: #ccc;
+  font-size: 14px;
+  margin-bottom: 10px;
+}
+
+/* 命令输入框容器样式，模拟终端命令行的输入区域 */
+.input-container {
+  display: flex;
+  align-items: center;
+  background-color: #111;
+  border-radius: 5px;
+  padding: 5px;
+}
+
+/* 命令输入框样式，设置宽度、高度、字体、颜色等 */
+input[type="text"] {
+  flex: 1;
+  background-color: transparent;
+  border: none;
+  color: #fff;
+  font-family: "Courier New", monospace;
+  font-size: 16px;
+  outline: none;
+  padding: 10px;
+}
+
+/* 执行按钮样式，模拟终端的按钮风格，使用图标增加视觉效果 */
+button {
+  background-color: #00ff00;
+  border: none;
+  border-radius: 5px;
+  color: #000;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 8px 15px;
+  margin-left: 10px;
+}
+
+button:hover {
+  background-color: #00cc00;
+}
+
+button i {
+  margin-right: 5px;
+}
+
+/* 结果展示区域样式，设置滚动条等，模拟终端输出区域 */
+#result {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 5px;
+  background-color: #111;
+  max-height: 50%;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* 命令行输出的每行样式，模拟终端的文本格式 */
+.command-line {
+  margin-bottom: 5px;
+}
+
+/* 模拟终端命令提示符样式 */
+.prompt {
+  color: #00ff00;
+}
+
+/* 命令输出的标准输出内容样式 */
+.stdout {
+  color: #00ff00;
+}
+
+/* 命令输出的标准错误内容样式 */
+.stderr {
+  color: #ff0000;
+}
