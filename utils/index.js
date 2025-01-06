@@ -11,8 +11,15 @@ const colors = {
 };
 
 // 自定义打印函数，模拟类似chalk的功能，用于添加颜色和样式
-function styledPrint(color, text) {
-  return `${colors[color]}${text}${colors["reset"]}`;
+function log(text) {
+  return `${colors.blue}${text}${colors["reset"]}`;
+}
+function error(text) {
+  return `${colors.red}${text}${colors["reset"]}`;
 }
 
-module.exports = { styledPrint };
+function warn(text) {
+  return `${colors.yellow}${text}${colors["reset"]}`;
+}
+
+window.console = { log, error, warn };
