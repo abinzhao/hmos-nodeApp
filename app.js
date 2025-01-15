@@ -1,9 +1,12 @@
 const express = require("express");
 const bodyParser = require("body-parser");
-const logger = require("winston");
 const dotenv = require("dotenv");
 const TcpService = require("./services/tcpService");
 const apiRoutes = require("./routes/api");
+const fileRoutes = require("./routes/file");
+const userRoutes = require("./routes/user");
+const cors = require("cors");
+const { onCreateTables } = require("./mysqlService/tables");
 
 // 加载.env 文件
 dotenv.config();
@@ -14,18 +17,26 @@ TcpService.getInstance();
 // 创建Express应用
 const app = express();
 
+// 使用 cors 中间件实现跨域
+app.use(cors());
+
 // 中间件
 app.use(bodyParser.json());
 
 // 配置静态文件夹
 app.use(express.static("public"));
 
+// 数据库
+onCreateTables();
+
 // 路由
 app.use("/api", apiRoutes);
+app.use("/api", fileRoutes);
+app.use("/api", userRoutes);
 
 // 错误处理中间件
 app.use((err, req, res, next) => {
-  logger.error(chalk.red(`全局错误处理器捕获错误: ${err.message}`));
+  console.error(`全局错误处理器捕获错误: ${err.message}`);
   res.status(500).json({ error: "服务器内部错误" });
 });
 

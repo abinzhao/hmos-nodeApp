@@ -140,30 +140,29 @@ function getCheckPortCommand() {
 }
 
 // 关闭服务器（HTTP服务器和TCP服务器）的函数
-function closeServers() {
-  return new Promise((resolve) => {
+async function closeServers() {
+  try {
     // 关闭HTTP服务器
     if (webServer) {
-      webServer.close(() => {
-        console.log("HTTP服务器已关闭。");
-      });
+      await new Promise((resolve, reject) =>
+        webServer.close((err) => (err ? reject(err) : resolve()))
+      );
+      console.log("HTTP服务器已关闭。");
     }
 
     // 停止TCP服务器
-    tcpServiceInstance.stop();
-
-    resolve();
-  });
+    await tcpServiceInstance.stop();
+  } catch (err) {
+    console.error("关闭服务器时出错:", err);
+  }
 }
 
-// 优雅关闭服务器的函数，添加重复操作避免逻辑
 function gracefulShutdown() {
   if (isClosing) return;
   isClosing = true;
   console.log("正在关闭服务器...");
-  closeServers().then(() => {
-    process.exit(1);
-  });
+  closeServers().catch(console.error);
+  process.exit(1);
 }
 
 // 监听常见终止信号，确保优雅关闭服务，避免重复触发关闭逻辑

@@ -10,16 +10,17 @@ const colors = {
   gray: "\x1b[90m",
 };
 
-// 自定义打印函数，模拟类似chalk的功能，用于添加颜色和样式
-function log(text) {
-  return `${colors.blue}${text}${colors["reset"]}`;
-}
-function error(text) {
-  return `${colors.red}${text}${colors["reset"]}`;
-}
-
-function warn(text) {
-  return `${colors.yellow}${text}${colors["reset"]}`;
+// 创建一个包装器函数，用于添加颜色到控制台输出
+function wrapConsoleMethod(method, color) {
+  const originalMethod = console[method].bind(console);
+  return function (...args) {
+    // 将每个参数都加上颜色
+    const coloredArgs = args.map(arg => `${color}${arg}${colors.reset}`);
+    originalMethod(...coloredArgs);
+  };
 }
 
-window.console = { log, error, warn };
+// 修改 console 的 log, error 和 warn 方法
+console.log = wrapConsoleMethod('log', colors.blue);
+console.error = wrapConsoleMethod('error', colors.red);
+console.warn = wrapConsoleMethod('warn', colors.yellow);
