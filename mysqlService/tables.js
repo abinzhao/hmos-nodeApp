@@ -24,11 +24,13 @@ async function createAppTable() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       app_icon VARCHAR(255),
       app_name VARCHAR(255) NOT NULL,
+      app_package_name VARCHAR(255) NOT NULL,
       app_description TEXT,
       app_screenshot VARCHAR(255),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       app_category JSON,
+      install_count INT,
       app_version VARCHAR(50)
     )
   `;
