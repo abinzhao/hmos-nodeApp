@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { query, insert, update, deleteData } = require("../mysqlService/mysqlService");
 
 // 新增应用数据的接口
 router.post("/add-app", async (req, res) => {
@@ -142,6 +143,38 @@ router.get("/get-app", async (req, res) => {
       res.json({ message: "应用数据查询成功", data: results[0] });
     } else {
       res.status(404).json({ error: "应用未找到" });
+    }
+  } catch (error) {
+    res.status(500).json({ error: "查询应用数据时出现错误", details: error.message });
+  }
+});
+
+// 查询所有应用或根据分类查询应用的接口
+router.get("/get-apps", async (req, res) => {
+  try {
+    const { category } = req.query;
+    let sql;
+    let values = [];
+
+    if (category) {
+      // 根据分类查询应用
+      sql = "SELECT * FROM applications WHERE app_category =?";
+      values = [category];
+    } else {
+      // 查询所有应用
+      sql = "SELECT * FROM applications";
+    }
+
+    const results = await query(sql, values);
+    if (results.length > 0) {
+      res.json({
+        message: category ? `类别 ${category} 下的应用数据查询成功` : "所有应用数据查询成功",
+        data: results,
+      });
+    } else {
+      res
+        .status(404)
+        .json({ error: category ? `类别 ${category} 下未找到应用` : "未找到任何应用" });
     }
   } catch (error) {
     res.status(500).json({ error: "查询应用数据时出现错误", details: error.message });

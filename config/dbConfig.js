@@ -1,5 +1,5 @@
 module.exports = {
-  host: "localhost", // 数据库主机地址，根据实际情况修改
+  host: "8.140.239.170", // 数据库主机地址，根据实际情况修改
   user: "root", // 数据库用户名，按需替换
   password: "your_password", // 你的数据库密码
   database: "your_database", // 要连接的数据库名称

@@ -6,7 +6,7 @@ const apiRoutes = require("./routes/api");
 const fileRoutes = require("./routes/file");
 const userRoutes = require("./routes/user");
 const cors = require("cors");
-const { onCreateTables } = require("./mysqlService/tables");
+const onCreateTables = require("./mysqlService/tables");
 const fs = require("fs");
 
 // 创建 uploads 文件夹

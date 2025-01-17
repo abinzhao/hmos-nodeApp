@@ -1,5 +1,5 @@
 const mysql = require("mysql");
-const dbConfig = require("./dbConfig");
+const dbConfig = require("../config/dbConfig");
 
 // 创建数据库连接池
 const pool = mysql.createPool(dbConfig);
