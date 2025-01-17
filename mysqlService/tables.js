@@ -23,6 +23,7 @@ async function createAppTable() {
     CREATE TABLE IF NOT EXISTS ${tableName} (
       id INT AUTO_INCREMENT PRIMARY KEY,
       app_icon VARCHAR(255),
+      app_file_url VARCHAR(255),
       app_name VARCHAR(255) NOT NULL,
       app_package_name VARCHAR(255) NOT NULL,
       app_description TEXT,
