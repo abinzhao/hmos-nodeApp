@@ -3,40 +3,16 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
-const { query, insert, update } = require("../mysqlService/mysqlService");
-const { authenticateToken, authenticateAdmin } = require("../middleware/auth");
-const { v4: uuidv4 } = require('uuid'); // 引入uuid v4生成器
-
-function generateUniqueFileName(file) {
-  const datePart = new Date().toISOString().replace(/[:\-T]/g, '').split('.')[0]; // 获取当前时间的ISO字符串，并移除特殊字符
-  const uuidPart = uuidv4(); // 生成UUID
-  const originalNamePart = file.originalname.split('.').slice(0, -1).join('.'); // 移除扩展名后的原始文件名
-  const extensionPart = file.originalname.split('.').pop(); // 文件扩展名
-  
-  return `${datePart}_${uuidPart}_${originalNamePart}.${extensionPart}`; // 组合新的文件名
-}
+const { query, update } = require("../mysqlService/mysqlService");
+const { authenticateToken } = require("../middleware/auth");
+const { v4: uuidv4 } = require("uuid"); // 引入uuid v4生成器
 
 // 配置 Multer 存储引擎
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const { packageName, type } = req.body;
-    let destinationPath = "";
-
-    // 根据文件类型创建不同的目录
-    if (type === "icon") {
-      destinationPath = path.join("uploads", "icon", packageName);
-    } else if (type === "file") {
-      destinationPath = path.join("uploads", "file", packageName);
-    } else if (type === "screenshot") {
-      destinationPath = path.join("uploads", "screenshot", packageName);
-    } else {
-      destinationPath = path.join("uploads", packageName);
-    }
-    // 创建存储目录（如果不存在）
-    if (!fs.existsSync(destinationPath)) {
-      console.log("创建目录：" + destinationPath);
-      fs.mkdirSync(destinationPath, { recursive: true });
-    }
+    let destinationPath = getDestinationPath(packageName, type);
+    createDirectoryIfNotExists(destinationPath);
     cb(null, destinationPath);
   },
   filename: function (req, file, cb) {
@@ -50,32 +26,15 @@ const upload = multer({ storage: storage });
 // 文件上传接口
 router.post("/upload", upload.single("file"), async (req, res) => {
   try {
-
     const { packageName, type } = req.body;
     const file = req.file;
-    if (!packageName || !type || !file) {
-      return res.status(400).json({ error: "软件包名、类型和文件是必需的" });
-    }
-    if (type === "icon" || type === "file" || type === "screenshot") {
-      // 删除原有的对应类型文件夹
-      const folderPath = path.join("uploads", type, packageName);
-      if (!fs.existsSync(folderPath)) {
-        console.log("创建目录：" + folderPath);
-        fs.mkdirSync(folderPath, { recursive: true });
-      }
-    }
-    
-    let externalLink = `uploads/${type}/${packageName}/${file.filename}`;
+    validateUploadRequest(packageName, type, file);
 
-    if (type === "file") {
-      externalLink = `download/${type}/${packageName}/${file.filename}`;
-    }
-    
-    /*filePath = path.join("uploads", packageName, type, file.originalname);
-    const externalLink = `http://127.0.0.1/${path.relative(__dirname, filePath)}`;*/
+    const externalLink = constructExternalLink(type, packageName, file.filename);
     res.json({ message: "文件上传成功", link: externalLink });
   } catch (error) {
-    res.status(500).json({ error: "文件上传时出现错误", details: error.message });
+    console.error("文件上传时出现错误:", error.message);
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
@@ -83,46 +42,101 @@ router.post("/upload", upload.single("file"), async (req, res) => {
 router.get("/download/:id/:type/:packageName/:filename", authenticateToken, async (req, res) => {
   try {
     const { packageName, type, filename, id } = req.params;
-    // 根据包名和文件名查找上架状态
-    let sql = "SELECT * FROM applications WHERE id=?"
-    const result = await query(sql, [id]);
+    const application = await findApplicationById(id);
+    validateDownloadAccess(req.user, application);
 
-
-    if (result.length < 1) {
-      return res.status(404).json({ error: "文件不存在" });
-    }
-
-    // 如果非管理员，只能够下载自己的或者上架的
-    ;
-    const role = req.user.user_role;
-    const userId = req.user.id;
-    if (role !== "admin") {
-      if (result[0].applications_status !== 3 || result[0].user_id !== userId) {
-        return res.status(403).json({ error: "无权限下载" });
-      }
-    } else {
-      
-    }
-    let app_file_url = result[0].app_file_url;
-    const app_file_url_split = app_file_url.split('/');
-    const filePath = path.join("uploads", app_file_url_split[1], app_file_url_split[2], app_file_url_split[3]);
-    if (fs.existsSync(filePath)) {
-      let updateSql = "UPDATE applications SET install_count=install_count+1 where id=?";
-      const result = await update(updateSql, [id]);
-      
-        if (result > 0) {
-          console.log("用户信息更新成功")
-        } else {
-          console.error("用户信息更新失败");
-        }
- 
-      res.download(filePath);
-    } else {
-      res.status(404).json({ error: "文件未找到" });
-    }
+    const filePath = getFilePath(application.app_file_url);
+    incrementInstallCount(id);
+    sendFileResponse(res, filePath);
   } catch (error) {
-    res.status(500).json({ error: "文件下载时出现错误", details: error.message });
+    console.error("文件下载时出现错误:", error.message);
+    res.status(error.statusCode || 500).json({ error: error.message });
   }
 });
 
+// 辅助函数
+function generateUniqueFileName(file) {
+  const datePart = new Date()
+    .toISOString()
+    .replace(/[:\-T]/g, "")
+    .split(".")[0];
+  const uuidPart = uuidv4();
+  const originalNamePart = path.basename(file.originalname, path.extname(file.originalname));
+  const extensionPart = path.extname(file.originalname);
+  return `${datePart}_${uuidPart}_${originalNamePart}${extensionPart}`;
+}
+
+function getDestinationPath(packageName, type) {
+  switch (type) {
+    case "icon":
+    case "file":
+    case "screenshot":
+      return path.join("uploads", type, packageName);
+    default:
+      return path.join("uploads", packageName);
+  }
+}
+
+function createDirectoryIfNotExists(dirPath) {
+  if (!fs.existsSync(dirPath)) {
+    console.log("创建目录:", dirPath);
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+}
+
+function constructExternalLink(type, packageName, filename) {
+  return type === "file"
+    ? `download/${type}/${packageName}/${filename}`
+    : `uploads/${type}/${packageName}/${filename}`;
+}
+
+function validateUploadRequest(packageName, type, file) {
+  if (!packageName || !type || !file) {
+    throw { statusCode: 400, message: "软件包名、类型和文件是必需的" };
+  }
+}
+
+async function findApplicationById(id) {
+  const sql = "SELECT * FROM applications WHERE id=?";
+  const result = await query(sql, [id]);
+  if (result.length < 1) {
+    throw { statusCode: 404, message: "文件不存在" };
+  }
+  return result[0];
+}
+
+function validateDownloadAccess(user, application) {
+  if (user.user_role !== "admin") {
+    if (application.applications_status !== 3 || application.user_id !== user.id) {
+      throw { statusCode: 403, message: "无权限下载" };
+    }
+  }
+}
+
+function getFilePath(appFileUrl) {
+  const parts = appFileUrl.split("/");
+  return path.join("uploads", parts[1], parts[2], parts[3]);
+}
+
+async function incrementInstallCount(id) {
+  const updateSql = "UPDATE applications SET install_count=install_count+1 WHERE id=?";
+  const result = await update(updateSql, [id]);
+  if (result > 0) {
+    console.log("用户信息更新成功");
+  } else {
+    console.error("用户信息更新失败");
+  }
+}
+
+function sendFileResponse(res, filePath) {
+  if (fs.existsSync(filePath)) {
+    res.download(filePath);
+  } else {
+    throw { statusCode: 404, message: "文件未找到" };
+  }
+}
+
 module.exports = router;
+
+
+

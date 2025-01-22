@@ -43,7 +43,7 @@ router.post("/add-app", authenticateToken, async (req, res) => {
   }
 });
 
-// 更新应用数据的接口
+// 管理员更新应用数据的接口
 router.post("/admin/update-app", authenticateAdmin, async (req, res) => {
   try {
     const {
@@ -147,7 +147,7 @@ router.post("/admin/update-app", authenticateAdmin, async (req, res) => {
   }
 });
 
-// 更新应用数据的接口
+// 普通用户更新应用数据的接口
 router.post("/user/update-app", authenticateToken, async (req, res) => {
   try {
     const {
